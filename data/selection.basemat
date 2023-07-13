@@ -1,0 +1,38 @@
+// More information on ULON format - https://developer.unigine.com/docs/code/formats/ulon_format
+// More information on scriptable materials - https://developer.unigine.com/docs/content/materials/scriptable
+BaseMaterial <preview_hidden=1 var_prefix=var texture_prefix=tex>
+{
+	Texture2D selection_depth <source=procedural>
+	Texture2D depth           <source=current_depth>
+	
+	//Color my_color = [0.61 0.78 0.25 1.0]
+	Color my_color = [1 0 0 1.0]
+	
+	Pass render_outline
+	{
+		Fragment =
+		#{
+			#include <core/materials/shaders/render/common.h>
+			
+			STRUCT_FRAG_BEGIN
+				INIT_COLOR(float4)
+			STRUCT_FRAG_END
+			
+			#define THICKNESS 3
+			MAIN_FRAG_BEGIN(FRAGMENT_IN)
+				
+				float mask = TEXTURE(tex_selection_depth, IN_UV).r;
+				//mask = TEXTURE(tex_depth, IN_UV).r > mask && mask > 0.0f;
+				mask = checkRange(mask, EPSILON, TEXTURE(tex_depth, IN_UV).r - EPSILON); // Alternative version
+				mask = toFloat(mask > 0.0f);
+				
+				float center = TEXTURE_BIAS_ZERO(tex_depth, IN_UV).r;
+				float center_selection = TEXTURE_BIAS_ZERO(tex_selection_depth, IN_UV).r;
+				
+				// Composite onto screen
+				OUT_COLOR = float4(var_my_color.rgb, var_my_color.a * mask);
+				
+			MAIN_FRAG_END
+		#}
+	}
+}
